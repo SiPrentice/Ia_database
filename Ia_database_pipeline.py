@@ -324,7 +324,7 @@ def fit_LC( t_ref , m_ref , runs = 100, tmax_only = True, band = 'ztfr'):
     
     
     # load in the template LC
-    t, m = np.loadtxt(f'./template_for_{band}.txt', unpack = True)
+    t, m = np.loadtxt(f'./templates/template_for_{band}.txt', unpack = True)
     
     # set the offsets
     m_off = 1
