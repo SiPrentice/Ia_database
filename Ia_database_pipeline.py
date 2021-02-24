@@ -21,7 +21,7 @@ from scipy.interpolate import UnivariateSpline as spline
 # Some user input here
 main_csv = '2021_SNeIa.csv'
 csv = 'tableDownload.csv'
-save_csv = False #overwrites the main csv, normally set to True
+save_csv = True #overwrites the main csv, normally set to True
 ####
 
 gsheet = pd.read_csv(f'./{main_csv}', delimiter ='\t')
@@ -462,7 +462,7 @@ def set_for_obs(df, obs_file = './OBSERVE_SN.txt'):
                     sn_status[2] = isot_max
                 
                 # Now check each object. Set 'complete' those with max spectrum. pandas gives blank elements as nan
-                if str(has_max) != 'nan':
+                if str(has_max) == 'y':
                     
                     sn_status[3] = 'complete'
                     main.append([zname, *sn_status ])
