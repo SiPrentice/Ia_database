@@ -463,13 +463,13 @@ def set_for_obs(df, obs_file = './OBSERVE_SN.txt'):
                 
                 # Now check each object. Set 'complete' those with max spectrum. pandas gives blank elements as nan
                 if str(has_max) == 'y':
-                    
+                    print(f'{zname} has maximum light spectrum.')
                     sn_status[3] = 'complete'
                     main.append([zname, *sn_status ])
                 
                 # Make those with no max spectrum but tmax in the future active
                 elif ((time_now - mjd_max) < 10):
-                    
+                    print(f'{zname} is active. Please update observing schedule.')
                     sn_status[3] = 'active'
                     
                     main.append([zname, *sn_status ])
