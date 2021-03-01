@@ -17,6 +17,7 @@ from astropy.time import Time
 import datetime
 import numpy as np
 from scipy.interpolate import UnivariateSpline as spline
+import matplotlib.pyplot as plt
 
 # Some user input here
 main_csv = '2021_SNeIa.csv'
@@ -31,6 +32,13 @@ tokens = np.loadtxt('./tokens.txt', unpack = True, dtype='str')
 # API related 
 # Fritz API token
 token = tokens[0]
+
+
+# check if the plots directory exists
+if os.path.isdir('./plots') == False:
+    print('Making ./plots/')
+    os.mkdir('./plots')
+
 
 
 # TNs requirements
@@ -314,11 +322,12 @@ def get_photometry(json, band = 'ztfr'):
     return np.array(mjd), np.array(m)      
 
 
-def fit_LC( t_ref , m_ref , runs = 100, tmax_only = True, band = 'ztfr'):
+def fit_LC( t_ref , m_ref , runs = 100, tmax_only = True, band = 'ztfr', name ='', mjd_now = 0):
     
     
-    # Normalise the reference LC
+    # Normalise the reference LC. The first two may be needed in order to plot some relative time
     t_last = max(t_ref)
+    t_first = min(t_ref)
     t_ref = t_ref - min(t_ref) 
     m_ref = m_ref - min(m_ref)
     
@@ -340,14 +349,15 @@ def fit_LC( t_ref , m_ref , runs = 100, tmax_only = True, band = 'ztfr'):
         t_off = results[-1][1]
         m_off = results[-1][2]
         
-        # make small random variatiosn to them
-        t_off = np.random.normal(t_off, max(t_off * 0.5, 0.5) )
+        # make small random variations to them
+        t_off = np.random.normal(t_off, max(t_off * 0.5, 1) )
+        # Constraints, otherwise the code may not converge
         while 20 > t_off < -10:
             t_off = np.random.normal(t_off, max(t_off * 0.5, 1) )
 
-        m_off = np.random.normal(m_off, max(m_off * 0.1, 0.5) )
+        m_off = np.random.normal(m_off, max(m_off * 0.5, 0.2) )
         while 5 > m_off < -5:
-            m_off = np.random.normal(m_off, max(m_off * 0.5, 1) )
+            m_off = np.random.normal(m_off, max(m_off * 0.5, 0.2) )
         
         
         # set the new position for the template LC in mag and t space
@@ -369,6 +379,18 @@ def fit_LC( t_ref , m_ref , runs = 100, tmax_only = True, band = 'ztfr'):
             final_m = m_new
     
     tmax = (t[np.argmin(m)] - results[-1][1]) - t_ref[-1] 
+
+    # plot the LCs
+    plt.plot(final_t, final_m, color = 'grey', linestyle = 'dotted', label ='Template')
+    plt.scatter(t_ref, m_ref, marker = 'o', label = band, zorder = 0)    
+    plt.axvline(x = mjd_now - t_first, color = 'tab:orange', lw= 1, label = 'Time of plot')
+    plt.legend()
+    plt.gca().invert_yaxis()
+    plt.minorticks_on()
+    plt.xlabel('Time since max', fontsize = 12)
+    plt.ylabel('Magnitude + offset', fontsize = 12)
+    plt.savefig(f'./plots/{name}_{band}.pdf', bbox_inches = 'tight')
+    plt.close()  
     
     if tmax_only:
         return tmax, t_last + tmax
@@ -385,7 +407,7 @@ def clean_LC(t_ref,m_ref):
     return np.array(t_ref), np.array(m_ref)
 
     
-def get_tmax(sn):
+def get_tmax(sn, time_now):
     print(f'\nFetching photometry for {sn}')
     response  = api_phot('GET', 'https://fritz.science/api/sources/', obj_id = sn)
     print(f'HTTP code: {response.status_code}, {response.reason}')
@@ -404,7 +426,7 @@ def get_tmax(sn):
         
         # fit for maximum, rejecting if there is not enough photometry
         if len(m) > 1:
-            tmax = fit_LC(t,m, band = band)
+            tmax = fit_LC(t,m, band = band, name = sn, mjd_now = time_now)
         
             isot_max = Time(tmax[1], format = 'mjd').isot
             print(f'Predicted {band} maximum on {isot_max}')
@@ -454,7 +476,7 @@ def set_for_obs(df, obs_file = './OBSERVE_SN.txt'):
             
             # only take new objects
             if time_now - t0 <35:
-                tsince, mjd_max = get_tmax(zname)
+                tsince, mjd_max = get_tmax(zname, time_now)
                 isot_max = Time(mjd_max, format = 'mjd').isot
                 
                 # if the SN has not been added, we want to include the isot_max
