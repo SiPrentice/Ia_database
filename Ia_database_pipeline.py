@@ -146,11 +146,6 @@ def get_file(url):
     
 # Fritz API function    
 
-def api_spectra(method, endpoint, data=None):
-    headers = {'Authorization': f'token {token}'}
-    response = requests.request(method, endpoint, json=data, headers=headers)
-    return response
-
 def api_meta(method, endpoint, data=None):
     headers = {'Authorization': f'token {token}'}
     response = requests.request(method, endpoint, json=data, headers=headers)
@@ -322,6 +317,34 @@ def get_photometry(json, band = 'ztfr'):
     return np.array(mjd), np.array(m)      
 
 
+# These functions are for getting the spectra dates
+def api_spectra(method, endpoint, data=None):
+    headers = {'Authorization': f'token {token}'}
+    response = requests.request(method, endpoint, json=data, headers=headers)
+    return response
+
+def get_spectra_dates(zname):
+    
+    print('Fetching the spectra dates')
+    response  = api_spectra('GET', f'https://fritz.science/api/sources/{zname}/spectra')
+    print(f'HTTP code: {response.status_code}, {response.reason}')
+    
+    a = response.json()
+    
+    spectra = a['data']['spectra']
+    
+    mjd_list = []
+    
+    for s in spectra:
+        observed_at_isot = s['observed_at']
+        mjd = Time(observed_at_isot).mjd
+        mjd_list.append(mjd)
+    
+    return mjd_list
+
+
+# This function fits the light curve and produces the output plots
+
 def fit_LC( t_ref , m_ref , runs = 100, tmax_only = True, band = 'ztfr', name ='', mjd_now = 0):
     
     
@@ -379,15 +402,25 @@ def fit_LC( t_ref , m_ref , runs = 100, tmax_only = True, band = 'ztfr', name ='
             final_m = m_new
     
     tmax = (t[np.argmin(m)] - results[-1][1]) - t_ref[-1] 
+    
+    
+    # for this object get the spectra mjds from fritz
+    # first, get the spectra dates in the Fritz
+    spectra_mjds = get_spectra_dates(name)
 
     # plot the LCs
     plt.plot(final_t, final_m, color = 'grey', linestyle = 'dotted', label ='Template')
     plt.scatter(t_ref, m_ref, marker = 'o', label = band, zorder = 0)    
-    plt.axvline(x = mjd_now - t_first, color = 'tab:orange', lw= 1, label = 'Time of plot')
+    plt.axvline(x = mjd_now - t_first, color = 'tab:orange', lw = 1, label = 'Time of plot')
+    
+    for s in spectra_mjds:
+        plt.axvline(x = s - t_first, linestyle = 'dashed', color='lightgrey', lw = 1, zorder =0)
+        plt.text(s - t_first, -0.1, 'S', ha = 'center', fontsize = 8)
+    
     plt.legend()
     plt.gca().invert_yaxis()
     plt.minorticks_on()
-    plt.xlabel('Time since max', fontsize = 12)
+    plt.xlabel('Time since first observation', fontsize = 12)
     plt.ylabel('Magnitude + offset', fontsize = 12)
     plt.savefig(f'./plots/{name}_{band}.pdf', bbox_inches = 'tight')
     plt.close()  
@@ -475,9 +508,12 @@ def set_for_obs(df, obs_file = './OBSERVE_SN.txt'):
                 
             
             # only take new objects
-            if time_now - t0 <35:
+            if time_now - t0 <35:               
+                
+                # now get the time since max and plot the light curves
                 tsince, mjd_max = get_tmax(zname, time_now)
                 isot_max = Time(mjd_max, format = 'mjd').isot
+                
                 
                 # if the SN has not been added, we want to include the isot_max
                 if sn_status[2] == None:
