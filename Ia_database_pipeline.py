@@ -528,7 +528,7 @@ def set_for_obs(df, obs_file = './OBSERVE_SN.txt'):
                 # Make those with no max spectrum but tmax in the future active
                 elif ((time_now - mjd_max) < 10):
                     print(f'{zname} is active. Please update observing schedule.')
-                    sn_status[3] = 'active'
+                    sn_status[3] = '*** active ***'
                     
                     main.append([zname, *sn_status ])
                 
