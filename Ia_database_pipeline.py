@@ -20,9 +20,12 @@ from scipy.interpolate import UnivariateSpline as spline
 import matplotlib.pyplot as plt
 
 # Some user input here
+downloadRecent = True # set as True to use the Fritz API to get recent objects
 main_csv = '2021_SNeIa.csv'
 csv = 'tableDownload.csv'
 save_csv = True #overwrites the main csv, normally set to True
+maxRedshift = 0.025 # sets the redshift limit for frtching recent objects
+no_older_than = 35 # the limit for the discovery date in days since now 
 ####
 
 gsheet = pd.read_csv(f'./{main_csv}', delimiter ='\t')
@@ -180,6 +183,91 @@ def get_coords(ra,dec):
     
     return string
     
+
+
+### Functions for using Fritz API to get recent objects
+### saves a new csv file as tableDownload.csv
+
+def api(method, endpoint, data = None):
+    
+    headers = {'Authorization': f'token {token}'} 
+    
+    response = requests.request(method, endpoint, json=data, headers=headers)
+    
+    return response 
+
+def get_recent_objects(maxRedshift=maxRedshift, no_older_than=no_older_than):
+    '''
+    Uses the Fritz API to fetch SNe Ia saved earlier than 35 days from the time now with limiting redshift set to
+    maxRedshift.
+    Output is a dictionary called 'data'.
+    '''
+    time_now = Time(datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')).mjd
+    savedAfter = Time(time_now - no_older_than, format = 'mjd').isot
+    print(f'Getting objects saved after {savedAfter}')
+    numPerPage = 100
+    pageNumber = 1
+    classifications = 'Sitewide Taxonomy: Ia, Sitewide Taxonomy: Ia-02cx, Sitewide Taxonomy: Ia-91T,\
+    Sitewide Taxonomy: Ia-03fg, Sitewide Taxonomy: Ia-18byg, Sitewide Taxonomy: Ia-91bg, Sitewide Taxonomy: Ia-norm\
+    Sitewide Taxonomy: Ia-pec'
+    
+    # construct the URL      
+    endpoint = f'https://fritz.science/api/sources?savedAfter={savedAfter}&numPerPage={numPerPage}&\
+    pageNumber={pageNumber}&classifications={classifications}&maxRedshift={maxRedshift}'
+
+    sources = api('GET', endpoint, data = None)    
+    a = sources.json()
+    data = a['data']['sources']
+    
+    return data
+
+tableDownload_headers = ['Source ID',
+                         'Alias',
+                         'RA (deg)',
+                         'Dec (deg)',
+                         'RA (hh:mm:ss)',
+                         'Dec (dd:mm:ss)',
+                         'Redshift',
+                         'Classification',
+                         'Groups',
+                         'Date Saved',
+                         'Finder']    
+
+
+def generate_row(source):
+    '''Takes the source row for the Fritz API output and returns a new row to add to the csv'''
+    
+    tmp = []
+    
+    tmp.append( source.get('id', '') )
+    tmp.append('')
+    for i in range(2):
+        tmp.append( source.get('ra', '') )
+        tmp.append( source.get('dec', '') )
+    tmp.append(source.get('redshift', ''))
+    for j in range(4):
+        tmp.append('')
+        
+    return tmp   
+ 
+
+def make_csv(data, save_new_csv = True):
+    '''Makes the tableDownload.csv file used by the Ia pipeline. The headers are imported from above and the
+    csv rows filled from the 'data' file returned by the api.
+    '''
+
+    df = [generate_row(source) for source in data]
+        
+    # set the dataframe with the required headers
+    csv = pd.DataFrame(data = df, columns = tableDownload_headers)
+    
+    if save_new_csv:
+        print(f'Saving ./tableDownload.csv\n')
+        csv.to_csv('./tableDownload.csv', index = False)
+    else:    
+        return csv
+    
+#################################
 
 # make a dataframe from the ztf csv
 def ztf_dataframe(csv):
@@ -546,5 +634,9 @@ def set_for_obs(df, obs_file = './OBSERVE_SN.txt'):
     
     
 ## Run the pipeline
+if downloadRecent:
+    data = get_recent_objects()
+    make_csv(data)
+    
 df = process_ztf_csv(csv, save = save_csv)
 set_for_obs(df)    
