@@ -194,6 +194,11 @@ def api(method, endpoint, data = None):
     
     response = requests.request(method, endpoint, json=data, headers=headers)
     
+    #print(response.status_code)
+    if 400 == response.status_code:
+        print(f'HTTP code: {response.status_code}, {response.reason}')
+        print(f'Endpoint requested: {endpoint}')
+    
     return response 
 
 def get_recent_objects(maxRedshift=maxRedshift, no_older_than=no_older_than):
