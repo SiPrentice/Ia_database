@@ -217,8 +217,12 @@ def get_recent_objects(maxRedshift=maxRedshift, no_older_than=no_older_than):
     Sitewide Taxonomy: Ia-pec'
     
     # construct the URL      
+#    endpoint = f'https://fritz.science/api/sources?savedAfter={savedAfter}&numPerPage={numPerPage}&\
+#    pageNumber={pageNumber}&classifications={classifications}&maxRedshift={maxRedshift}'
+    
+    # construct the URL WHILE MAXREDSHIFT IS BROKEN     
     endpoint = f'https://fritz.science/api/sources?savedAfter={savedAfter}&numPerPage={numPerPage}&\
-    pageNumber={pageNumber}&classifications={classifications}&maxRedshift={maxRedshift}'
+    pageNumber={pageNumber}&classifications={classifications}'
 
     sources = api('GET', endpoint, data = None)    
     a = sources.json()
@@ -239,7 +243,7 @@ tableDownload_headers = ['Source ID',
                          'Finder']    
 
 
-def generate_row(source):
+def generate_row(source, maxRedshift=maxRedshift):
     '''Takes the source row for the Fritz API output and returns a new row to add to the csv'''
     
     tmp = []
@@ -261,7 +265,7 @@ def make_csv(data, save_new_csv = True):
     csv rows filled from the 'data' file returned by the api.
     '''
 
-    df = [generate_row(source) for source in data]
+    df = [generate_row(source) for source in data if source.get('redshift', 3) <= maxRedshift]
         
     # set the dataframe with the required headers
     csv = pd.DataFrame(data = df, columns = tableDownload_headers)
