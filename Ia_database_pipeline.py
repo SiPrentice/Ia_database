@@ -25,7 +25,7 @@ main_csv = '2021_SNeIa.csv'
 csv = 'tableDownload.csv'
 save_csv = True #overwrites the main csv, normally set to True
 maxRedshift = 0.025 # sets the redshift limit for frtching recent objects
-no_older_than = 35 # the limit for the discovery date in days since now 
+no_older_than = 15 # the limit for the discovery date in days since now 
 ####
 
 gsheet = pd.read_csv(f'./{main_csv}', delimiter ='\t')
@@ -35,6 +35,7 @@ tokens = np.loadtxt('./tokens.txt', unpack = True, dtype='str')
 # API related 
 # Fritz API token
 token = tokens[0]
+
 
 
 # check if the plots directory exists
@@ -52,6 +53,9 @@ url_tns_api="https://"+TNS+"/api/get"
 
 # API key for Bot
 api_key = tokens[1]
+YOUR_BOT_ID = tokens[2]
+YOUR_BOT_NAME = tokens[3]
+
 # list that represents json file for search obj
 search_obj=[("ra",""), ("dec",""), ("radius",""), ("units",""), ("objname",""), 
             ("objname_exact_match",0), ("internal_name",""), 
@@ -98,12 +102,15 @@ def search(url,json_list):
   try:
     # url for search obj
     search_url=url+'/search'
+    # headers
+    headers={'User-Agent':'tns_marker{"tns_id":'+str(YOUR_BOT_ID)+', "type":"bot",'\
+             ' "name":"'+YOUR_BOT_NAME+'"}'}
     # change json_list to json format
     json_file=OrderedDict(json_list)
     # construct a dictionary of api key data and search obj data
     search_data={'api_key':api_key, 'data':json.dumps(json_file)}
     # search obj using request module
-    response=requests.post(search_url, data=search_data)
+    response=requests.post(search_url, headers=headers, data=search_data)
     # return response
     return response
   except Exception as e:
@@ -114,12 +121,15 @@ def get(url,json_list):
   try:
     # url for get obj
     get_url=url+'/object'
+    # headers
+    headers={'User-Agent':'tns_marker{"tns_id":'+str(YOUR_BOT_ID)+', "type":"bot",'\
+             ' "name":"'+YOUR_BOT_NAME+'"}'}
     # change json_list to json format
     json_file=OrderedDict(json_list)
     # construct a dictionary of api key data and get obj data
     get_data={'api_key':api_key, 'data':json.dumps(json_file)}
     # get obj using request module
-    response=requests.post(get_url, data=get_data)
+    response=requests.post(get_url, headers=headers, data=get_data)
     # return response
     return response
   except Exception as e:
@@ -130,8 +140,11 @@ def get_file(url):
   try:
     # take filename
     filename=os.path.basename(url)
+    # headers
+    headers={'User-Agent':'tns_marker{"tns_id":'+str(YOUR_BOT_ID)+', "type":"bot",'\
+             ' "name":"'+YOUR_BOT_NAME+'"}'}
     # downloading file using request module
-    response=requests.post(url, data={'api_key':api_key}, stream=True)
+    response=requests.post(url, data={'api_key':api_key}, headers=headers, stream=True)
     # saving file
     path=os.path.join(download_dir,filename)
     if response.status_code == 200:
