@@ -25,7 +25,7 @@ main_csv = '2021_SNeIa.csv'
 csv = 'tableDownload.csv'
 save_csv = True #overwrites the main csv, normally set to True
 maxRedshift = 0.025 # sets the redshift limit for frtching recent objects
-no_older_than = 15 # the limit for the discovery date in days since now 
+no_older_than = 35 # the limit for the discovery date in days since now 
 ####
 
 gsheet = pd.read_csv(f'./{main_csv}', delimiter ='\t')
@@ -225,6 +225,7 @@ def get_recent_objects(maxRedshift=maxRedshift, no_older_than=no_older_than):
     print(f'Getting objects saved after {savedAfter}')
     numPerPage = 100
     pageNumber = 1
+    group_ids = '41'
     classifications = 'Sitewide Taxonomy: Ia, Sitewide Taxonomy: Ia-02cx, Sitewide Taxonomy: Ia-91T,\
     Sitewide Taxonomy: Ia-03fg, Sitewide Taxonomy: Ia-18byg, Sitewide Taxonomy: Ia-91bg, Sitewide Taxonomy: Ia-norm\
     Sitewide Taxonomy: Ia-pec'
@@ -234,8 +235,8 @@ def get_recent_objects(maxRedshift=maxRedshift, no_older_than=no_older_than):
 #    pageNumber={pageNumber}&classifications={classifications}&maxRedshift={maxRedshift}'
     
     # construct the URL WHILE MAXREDSHIFT IS BROKEN     
-    endpoint = f'https://fritz.science/api/sources?savedAfter={savedAfter}&numPerPage={numPerPage}&\
-    pageNumber={pageNumber}&classifications={classifications}'
+    endpoint = f'https://fritz.science/api/sources?savedAfter={savedAfter}\
+    &classifications={classifications}&group_ids={group_ids}'
 
     sources = api('GET', endpoint, data = None)    
     a = sources.json()
