@@ -235,8 +235,11 @@ def get_recent_objects(maxRedshift=maxRedshift, no_older_than=no_older_than):
 #    pageNumber={pageNumber}&classifications={classifications}&maxRedshift={maxRedshift}'
     
     # construct the URL WHILE MAXREDSHIFT IS BROKEN     
+#    endpoint = f'https://fritz.science/api/sources?savedAfter={savedAfter}\
+#    &classifications={classifications}&group_ids={group_ids}'
+    
     endpoint = f'https://fritz.science/api/sources?savedAfter={savedAfter}\
-    &classifications={classifications}&group_ids={group_ids}'
+    &classifications={classifications}&maxRedshift={maxRedshift}&group_ids={group_ids}'
 
     sources = api('GET', endpoint, data = None)    
     a = sources.json()
