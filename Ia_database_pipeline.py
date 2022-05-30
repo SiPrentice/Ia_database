@@ -472,13 +472,15 @@ def get_spectra_dates(zname):
     spectra = a['data']['spectra']
     
     mjd_list = []
+    instrument_list = []
     
     for s in spectra:
         observed_at_isot = s['observed_at']
         mjd = Time(observed_at_isot).mjd
         mjd_list.append(mjd)
+        instrument_list.append(s['instrument_name'])
     
-    return mjd_list
+    return mjd_list, instrument_list
 
 
 # This function fits the light curve and produces the output plots
@@ -544,16 +546,20 @@ def fit_LC( t_ref , m_ref , runs = 100, tmax_only = True, band = 'ztfr', name ='
     
     # for this object get the spectra mjds from fritz
     # first, get the spectra dates in the Fritz
-    spectra_mjds = get_spectra_dates(name)
+    # instrumental retrieval added 30/05/2022 @luharvey
+    spectra_mjds, spectra_instruments = get_spectra_dates(name)
 
     # plot the LCs
     plt.plot(final_t, final_m, color = 'grey', linestyle = 'dotted', label ='Template')
     plt.scatter(t_ref, m_ref, marker = 'o', label = band, zorder = 0)    
     plt.axvline(x = mjd_now - t_first, color = 'tab:orange', lw = 1, label = 'Time of plot')
     
-    for s in spectra_mjds:
+    for i, s in enumerate(spectra_mjds):
         plt.axvline(x = s - t_first, linestyle = 'dashed', color='lightgrey', lw = 1, zorder =0)
-        plt.text(s - t_first, -0.1, 'S', ha = 'center', fontsize = 8)
+        if spectra_instruments[i] == 'SPRAT':
+            plt.text(s - t_first, -0.1, 'Y', ha = 'center', fontsize = 8)
+        else:
+            plt.text(s - t_first, -0.1, 'S', ha = 'center', fontsize = 8)
     
     plt.legend()
     plt.gca().invert_yaxis()
