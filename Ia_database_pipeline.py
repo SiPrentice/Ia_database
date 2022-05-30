@@ -4,6 +4,8 @@
 Created on Fri Feb 19 15:25:05 2021
 
 @author: sprentice
+
+Updated on Mon May 30 15:25:05 2022 - increased redshift cut and timeout protection in get_TNS_function @luharvey
 """
 
 import requests
@@ -18,13 +20,14 @@ import datetime
 import numpy as np
 from scipy.interpolate import UnivariateSpline as spline
 import matplotlib.pyplot as plt
+import time
 
 # Some user input here
 downloadRecent = True # set as True to use the Fritz API to get recent objects
 main_csv = '2021_SNeIa.csv'
 csv = 'tableDownload.csv'
 save_csv = True #overwrites the main csv, normally set to True
-maxRedshift = 0.025 # sets the redshift limit for frtching recent objects
+maxRedshift = 0.055 # sets the redshift limit for frtching recent objects - changed from 0.025 to 0.055 30/05/2022
 no_older_than = 35 # the limit for the discovery date in days since now 
 ####
 
@@ -170,7 +173,7 @@ def api_meta(method, endpoint, data=None):
 
 
 # My functions for other processes
-
+#   Updated function with the redshift cut increase
 def get_TNS_name(ztf):    
     
     search_obj=[("ra",""), ("dec",""), ("radius","5"), ("units","arcsec"), 
@@ -179,11 +182,32 @@ def get_TNS_name(ztf):
 
     response=search(url_tns_api,search_obj)
 
+    if response.headers['x-rate-limit-remaining'] == 'Exceeded':
+        time.sleep(int(response.headers['x-rate-limit-reset']))
+        response=search(url_tns_api,search_obj)
+
     if None not in response:
         a = response.json()
         return a["data"]['reply'][0]['objname']
     else:
-        return 'None'    
+        return 'None' 
+#   Original function
+#def get_TNS_name(ztf):    
+#    
+#    search_obj=[("ra",""), ("dec",""), ("radius","5"), ("units","arcsec"), 
+#            ("objname",""), ("objname_exact_match",0), ("internal_name", ztf), 
+#            ("internal_name_exact_match",0), ("objid",""), ("public_timestamp","")]     
+#
+#    response=search(url_tns_api,search_obj)
+#
+#    print(response)
+#    print(ztf)
+#
+#    if None not in response:
+#        a = response.json()
+#        return a["data"]['reply'][0]['objname']
+#    else:
+#        return 'None'
 
 
 def get_coords(ra,dec):
