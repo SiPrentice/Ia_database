@@ -664,7 +664,7 @@ def set_for_obs(df, obs_file = './OBSERVE_SN.txt'):
                     sn_status[2] = isot_max
                 
                 # Now check each object. Set 'complete' those with max spectrum. pandas gives blank elements as nan
-                if str(has_max) == 'y':
+                if str(has_max) == 'y' or str(has_max) == 's':
                     print(f'{zname} has maximum light spectrum.')
                     sn_status[3] = 'complete'
                     main.append([zname, *sn_status ])
